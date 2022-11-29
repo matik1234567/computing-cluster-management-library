@@ -9,7 +9,7 @@ Project created for the needs of Engineering Thesis
 * Librabry can be used in any enviroment supported by .net 6
 
 ## Installation
-- Github https://github.com/matik1234567/cluster-management-system
+- Github
 - NuGet 
 
 ## Contact
