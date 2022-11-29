@@ -1,8 +1,10 @@
 {
   "version": 2,
-  "dgSpecHash": "VSVDFHXfo1VOGtlttHI+StKDrV7YGS0hkyKDnRrD81qdOLMfL5UBr9OFWbmCatXRHq1XzDAWBDAwWBz/xjZIbg==",
+  "dgSpecHash": "Y2n+v4/nRb4yfrtarOpsyC5bQgRORqSrvslDgAuItoSvG+jBsi2bOMuhu8DkvYJ5SVRhXTy0i6NSwPaztADjNw==",
   "success": true,
   "projectFilePath": "C:\\main\\git\\computing-cluster-management-library\\CCMLibrary\\CCMLibrary\\CCMLibrary.csproj",
-  "expectedPackageFiles": [],
+  "expectedPackageFiles": [
+    "C:\\Users\\machu\\.nuget\\packages\\newtonsoft.json\\13.0.2\\newtonsoft.json.13.0.2.nupkg.sha512"
+  ],
   "logs": []
 }

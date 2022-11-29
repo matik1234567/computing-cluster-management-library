@@ -5,15 +5,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <Title>Computing Cluster Management Library</Title>
-    <Description>Allows to split tasks on multiple computers connected via TCP protocol. The library support multi threading tasks implementation.</Description>
+    <Description>Allows to split tasks on multiple computers connected via TCP protocol. The libarary support multi threading tasks implementation.</Description>
     <PackageProjectUrl></PackageProjectUrl>
     <RepositoryUrl>https://github.com/matik1234567/computing-cluster-management-library</RepositoryUrl>
-    <PackageTags>cluster;computing;management</PackageTags>
-    <Authors>Mateusz Machura</Authors>
+    <PackageTags>cluster;computing cluster;cluster management</PackageTags>
   </PropertyGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.2" />
-  </ItemGroup>
 
 </Project>
