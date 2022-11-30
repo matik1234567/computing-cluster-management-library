@@ -2,7 +2,7 @@
 Project created for the needs of Engineering Thesis
 
 ## Repository
-* Cluster management library -  allows to split tasks on multiple computers connected via TCP protocol. The libarary support multi threading tasks implementation. 
+* Cluster management library -  This library allows to distribute tasks to several computers connected via TCP. Supports multi-threading. 
 * Sample of library usage
 
 ## Requirements
