@@ -5,11 +5,12 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <Title>Computing Cluster Management Library</Title>
-    <Description>Allows to split tasks on multiple computers connected via TCP protocol. The library support multi threading tasks implementation.</Description>
+    <Description>This library allows to distribute tasks to several computers connected via TCP. Supports multi-threading.</Description>
     <PackageProjectUrl></PackageProjectUrl>
     <RepositoryUrl>https://github.com/matik1234567/computing-cluster-management-library</RepositoryUrl>
     <PackageTags>cluster;computing;management</PackageTags>
     <Authors>Mateusz Machura</Authors>
+    <Version>1.0.1</Version>
   </PropertyGroup>
 
   <ItemGroup>

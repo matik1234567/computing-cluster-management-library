@@ -31,14 +31,6 @@ namespace CCMLibrary
             return _id;
         }
         
-        /// <summary>
-        /// Define task startup point
-        /// </summary>
-        /// <exception cref="NotImplementedException"></exception>
-        public virtual void Run()
-        {
-            throw new NotImplementedException();
-        }
         
     }
 }
