@@ -15,26 +15,26 @@ namespace CCMLibrary
     /// Class allow to define global variables,
     /// Implements necessery variables if user didn't define it
     /// </summary>
-    public class ProjectData
+    public class GlobalVariables
     {
         private static Dictionary<string, dynamic> RequiredAttrDefaults = new Dictionary<string, dynamic> { { "heartBeatFrequency", 10 } };
 
         [JsonProperty]
         private Dictionary<string, dynamic>? _values;
 
-        public ProjectData()
+        public GlobalVariables()
         {
             _values = new Dictionary<string, dynamic>();
             Validate();
         }
 
-        public ProjectData(Dictionary<string, dynamic> values)
+        public GlobalVariables(Dictionary<string, dynamic> values)
         {
             _values = values;
             Validate();
         }
 
-        public ProjectData(string jsonValues)
+        public GlobalVariables(string jsonValues)
         {
             if(jsonValues == null)
             {

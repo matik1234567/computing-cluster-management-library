@@ -49,9 +49,7 @@ namespace CCMLibrary
             _driver = DriverService.GetServerDriver(this);
 
             string hostName = Dns.GetHostName(); // Retrive the Name of HOST
-#pragma warning disable CS0618 // 'Dns.GetHostByName(string)' is obsolete: 'GetHostByName has been deprecated. Use GetHostEntry instead.'
-            _machineIPAddress = Dns.GetHostByName(hostName).AddressList[^1].ToString();
-#pragma warning restore CS0618 // 'Dns.GetHostByName(string)' is obsolete: 'GetHostByName has been deprecated. Use GetHostEntry instead.'
+            _machineIPAddress = Dns.GetHostEntry(hostName).AddressList[^1].ToString();
         }
 
         /// <summary>
@@ -128,7 +126,14 @@ namespace CCMLibrary
 
             Socket socket = (Socket)AR.AsyncState;
             IPEndPoint? remoteIpEndPoint;
-            remoteIpEndPoint = socket.RemoteEndPoint as IPEndPoint;
+            try
+            {
+                remoteIpEndPoint = socket.RemoteEndPoint as IPEndPoint;
+            }
+            catch(Exception)// socket may close
+            {
+                return;
+            }
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
             string ipAddress = remoteIpEndPoint.Address.ToString();
 #pragma warning restore CS8602 // Dereference of a possibly null reference.
@@ -141,14 +146,16 @@ namespace CCMLibrary
             Dictionary<byte[], char[]> buffers = new Dictionary<byte[], char[]>();
 
 #pragma warning disable CS0168 // The variable 'e' is declared but never used
+            MemoryStream ms;
             try
             {
                 socket.Receive(buffer, 0, buffer.Length, 0); // get size of message
                 int size = BitConverter.ToInt32(buffer, 0);
 
-                while (size > 0)
+                ms = new MemoryStream();
+                byte[] bufferTemp;
+                while (size>0)
                 {
-                    byte[] bufferTemp;
                     if (size < socket.ReceiveBufferSize)
                     {
                         bufferTemp = new byte[size];
@@ -157,14 +164,25 @@ namespace CCMLibrary
                     {
                         bufferTemp = new byte[socket.ReceiveBufferSize];
                     }
+
                     int rec = socket.Receive(bufferTemp, 0, bufferTemp.Length, 0);
                     size -= rec;
+       
+                    ms.Write(bufferTemp, 0, rec);
 
-                    json += PackageHandler.GetStringFromBytes(ref bufferTemp);
+                   // json += PackageHandler.GetStringFromBytes(ref bufferTemp);
                 }
                 socket.EndReceive(AR);
+                
+
+
             }
             catch(Exception e)
+            {
+                socket.Close();
+                return;
+            }
+            if (ms.Length == 0)
             {
                 socket.Close();
                 return;
@@ -180,7 +198,8 @@ namespace CCMLibrary
             
             try
             {
-                (requestHeader, object? requestData) = PackageHandler.DeserializeObject(json);
+                (requestHeader, object? requestData) = PackageHandler.DeserializeObject(ref ms);
+                ms.Dispose();
                 (responseHeader, responseData) = HandleResponse((ClientRequest)requestHeader, requestData, ipAddress);
                 data = PackageHandler.SerializeObject(responseHeader, responseData);  
             }
@@ -191,10 +210,16 @@ namespace CCMLibrary
                 ClientRequest r = (ClientRequest)requestHeader;
 #pragma warning restore CS8605 // Unboxing a possibly null value.
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
-                _serverRuntime.Log?.Write(LogType.Information, _ipAddress.ToString(), r.ToString() + ":" + _phase.ToString());
+                _serverRuntime.Log?.Write(LogType.Exception, _ipAddress.ToString(), r.ToString() + ":" + _phase.ToString());
 #pragma warning restore CS8602 // Dereference of a possibly null reference.
 
                 throw new ClusterSystemException(e.Message);
+            }
+
+            if(_serverRuntime.Log?.LogLevel == LogLevel.Debug)
+            {
+                _serverRuntime.Log?.Write(LogType.Information, _ipAddress.ToString(), $"[request]: {requestHeader.ToString()}");
+                _serverRuntime.Log?.Write(LogType.Information, _ipAddress.ToString(), $"[response]: {responseHeader.ToString()}");
             }
 
             try
@@ -232,7 +257,7 @@ namespace CCMLibrary
                 _serverSocket?.Listen(0);
                 _serverSocket?.BeginAccept(new AsyncCallback(AcceptCallback), null);
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
-                _serverRuntime.Log?.Write(LogType.Information, _ipAddress.ToString(), new string[] { "port:" + _port.ToString(), "server start" });
+                _serverRuntime.Log?.Write(LogType.Information, _machineIPAddress, $"[port]: {_port} Server start" );
 #pragma warning restore CS8602 // Dereference of a possibly null reference.
             }
         }
@@ -246,29 +271,33 @@ namespace CCMLibrary
             }
 
             _serverSocket?.Close();
-            _serverRuntime.Log?.Write(LogType.Information, _ipAddress == null ? "" : _ipAddress.ToString(), "server stop");
+            _serverRuntime.Log?.Write(LogType.Information, _machineIPAddress, "Server stop");
         }
 
         // Set states
         public void SendingProjectInvitation()
         {
             this._phase = ServerPhase.SendingInvitation;
+            _serverRuntime.Log?.Write(LogType.Information, _machineIPAddress, "Invitations phase");
         }
 
         public void ProjectInProgress()
         {
             this._phase = ServerPhase.InProgress;
+            _serverRuntime.Log?.Write(LogType.Information, _machineIPAddress,"Tasks progress phase");
         }
 
 
         public void ProjectCancelation()
         {
             this._phase = ServerPhase.Cancelation;
+            _serverRuntime.Log?.Write(LogType.Information, _machineIPAddress, "Cancellation phase");
         }
 
         public void ProjectFreeze()
         {
             this._phase = ServerPhase.Freeze;
+            _serverRuntime.Log?.Write(LogType.Information, _machineIPAddress, "Freeze phase");
         }
 
 
@@ -279,15 +308,13 @@ namespace CCMLibrary
         {
             ClientData clientData = (ClientData)ob;
             _serverRuntime.WorkflowService.AddClient(clientData, (string)senderIP);
-            _serverRuntime.Log?.Write(LogType.Information, (string)senderIP, "enrollment approve");
-            _serverRuntime.Log?.Write(LogType.Information,(string)senderIP, "response: project data");
+            _serverRuntime.Log?.Write(LogType.Information, _machineIPAddress, $"[new client ip]: {senderIP}");
             return (ServerResponse.ProjectGlobalAttributes, _serverRuntime.ProjectData);
         }
 
         public (ServerResponse, object?) EnrollmentCanceled(object ob, object senderIP)
         {
             _serverRuntime.WorkflowService.RemoveClient((string)senderIP);
-            _serverRuntime.Log?.Write(LogType.Information, (string)senderIP, "response: enrollment canclelled");
             return (ServerResponse.EnrollmentCanceled, null);
         }
 
@@ -299,14 +326,12 @@ namespace CCMLibrary
         public (ServerResponse, object?) HearbeatNoticed(object ob, object senderIP)
         {
             _serverRuntime.WorkflowService.AliveConfirmation((string)senderIP);
-            _serverRuntime.Log?.Write(LogType.Information, (string)senderIP, "response: heartbeat confirmed");
             return (ServerResponse.HearbeatNoticed, null);
         }
 
         public (ServerResponse, object?) Poison(object ob, object senderIP)
         {
             _serverRuntime.WorkflowService.RemoveClient((string)senderIP);
-            _serverRuntime.Log?.Write(LogType.Information, (string)senderIP, "response: poison");
             return (ServerResponse.Poison, "project finished");
         }
 
@@ -350,13 +375,11 @@ namespace CCMLibrary
         {
             // remove from worklfow service
             _serverRuntime.WorkflowService.RemoveClient((string)senderIP);
-            _serverRuntime.Log?.Write(LogType.Information, (string)senderIP, "response: poison");
             return (ServerResponse.Poison, "project finished");
         }
 
         public (ServerResponse, object?) RequestUnavailable(object ob, object senderIP)
         {
-            _serverRuntime.Log?.Write(LogType.Information, (string)senderIP, "response: unavailable");
             return (ServerResponse.RequestUnavailable, _phase);
         }
 

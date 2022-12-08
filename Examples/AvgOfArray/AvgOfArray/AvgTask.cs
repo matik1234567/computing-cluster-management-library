@@ -24,6 +24,7 @@ namespace AvgOfArray
                 avg += item;
             }
             avg /= Values.Count;
+            Values = null;
         }
 
     }

@@ -7,8 +7,7 @@ namespace AvgOfArray
         public static void Main(string[] args)
         {
             Runtime.SetMode(RuntimeMode.Virtual);
-            Runtime.RegisterServerClass(typeof(Server));
-            Runtime.RegisterClientClass(typeof(Client));
+            Runtime.IntroduceFronted(typeof(Server), typeof(Client));
           
             ServerRuntime serverRuntime = new ServerRuntime();
             serverRuntime.Server();

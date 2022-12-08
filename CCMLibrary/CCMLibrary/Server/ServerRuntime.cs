@@ -14,18 +14,25 @@ namespace CCMLibrary
     public class ServerRuntime : Runtime
     {
         private BrokerServer? _brokerServer;
-        public ProjectData ProjectData;
+        public GlobalVariables ProjectData;
         public WorkflowService WorkflowService;
         public NodeTaskService NodeTaskService;
         public dynamic? ServerFront;
-        public Log? Log;
-        public LogUser? LogUser;
+        public Logger? Log;
+        public LoggerFront? LogUser;
 
         private bool _onStartInProgress = false;
 
-        public ServerRuntime(ProjectData projectData, Log? log, LogUser? logUser)
+        public ServerRuntime(GlobalVariables? projectData, Logger? log, LoggerFront? logUser)
         {
-            ProjectData = projectData;
+            if (projectData == null)
+            {
+                ProjectData = new GlobalVariables();
+            }
+            else{
+                ProjectData = projectData;
+            }
+            
             WorkflowService = new WorkflowService(this);
             NodeTaskService = new NodeTaskService();
             if(log != null)
@@ -46,7 +53,7 @@ namespace CCMLibrary
             }
         }
 
-        public ServerRuntime(ProjectData projectData)
+        public ServerRuntime(GlobalVariables projectData)
         {
             ProjectData = projectData;
             WorkflowService = new WorkflowService(this);
@@ -57,7 +64,7 @@ namespace CCMLibrary
 
         public ServerRuntime()
         {
-            ProjectData = new ProjectData();
+            ProjectData = new GlobalVariables();
             WorkflowService = new WorkflowService(this);
             NodeTaskService = new NodeTaskService();
             Log = GetDefaultLog();
@@ -237,7 +244,6 @@ namespace CCMLibrary
                     }
                     serverStoped = ServerFront.StopCondition();
                 }
-
                 ServerFront.OnStop();
                 Freeze();
             }

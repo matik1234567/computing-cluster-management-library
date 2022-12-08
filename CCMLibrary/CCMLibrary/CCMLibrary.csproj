@@ -10,7 +10,7 @@
     <RepositoryUrl>https://github.com/matik1234567/computing-cluster-management-library</RepositoryUrl>
     <PackageTags>cluster;computing;management</PackageTags>
     <Authors>Mateusz Machura</Authors>
-    <Version>1.0.1</Version>
+    <Version>1.0.2</Version>
   </PropertyGroup>
 
   <ItemGroup>

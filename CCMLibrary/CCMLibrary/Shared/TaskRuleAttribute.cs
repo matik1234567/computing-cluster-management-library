@@ -8,15 +8,13 @@ namespace CCMLibrary
 {
     public enum TaskExecution { Sync, Async };
 
-    public enum Cores { Max };
-
     [AttributeUsage(AttributeTargets.Class)]
     public class TaskRuleAttribute : Attribute
     {
         public TaskExecution TaskExecution;
-        public Cores Cores;
-        public int CoresMultiply = -1;
-        public int TasksCount;
+        public float Cores = -1;
+        public int CoresMultiply = 1;
+        public int TasksCount = 1;
 
         public TaskRuleAttribute(TaskExecution taskRun, int tasksCount)
         {
@@ -24,7 +22,7 @@ namespace CCMLibrary
             TaskExecution = taskRun;
         }
 
-        public TaskRuleAttribute(TaskExecution taskRun, Cores cores, int multiply)
+        public TaskRuleAttribute(TaskExecution taskRun, float cores, int multiply)
         { 
             TaskExecution = taskRun;
             Cores = cores;
@@ -33,9 +31,7 @@ namespace CCMLibrary
 
         public TaskRuleAttribute()
         {
-            TaskExecution = TaskExecution.Async;
-            Cores = Cores.Max;
-            CoresMultiply = 1;
+            TaskExecution = TaskExecution.Sync;
         }
 
     }

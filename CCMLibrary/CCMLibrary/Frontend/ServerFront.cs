@@ -86,6 +86,16 @@ namespace CCMLibrary
         {
             _runtime.LogUser?.Print(values);
         }
-    
+
+        /// <summary>
+        /// Method return globally defined attribute by key
+        /// </summary>
+        /// <param name="key">Key of attribute</param>
+        /// <returns></returns>
+        protected dynamic? GetGlobalAttribute(string key)
+        {
+            return _runtime?.ProjectData?.GetValue(key);
+        }
+
     }
 }

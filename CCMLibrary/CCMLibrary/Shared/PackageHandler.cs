@@ -5,7 +5,10 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using System.Net.Sockets;
+using System.Runtime.Intrinsics.Arm;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -41,6 +44,7 @@ namespace CCMLibrary
             {
                 return Encoding.Default.GetString(buffer);
             }
+            StringBuilder stringBuilder = new StringBuilder();
             string value = "";
             foreach (char c in chars)
             {
@@ -48,9 +52,9 @@ namespace CCMLibrary
                 {
                     continue;
                 }
-                value += c;
+                stringBuilder.Append(c);
             }
-            return value;
+            return stringBuilder.ToString();
         }
 
         public static byte[] SerializeObject(Enum message, object? classObject)
@@ -77,15 +81,44 @@ namespace CCMLibrary
             return combined;
         }
 
-        public static (Enum, object) DeserializeObject(byte[] byteArr)
+        public static (Enum, object) DeserializeObject(ref MemoryStream memoryStream)
         {
-            string json = Encoding.Default.GetString(byteArr);
-            //json = json.Trim(new char[] { '\uFEFF', '\u200B' });
-            Package? package;
+            Package? package=null;
+            memoryStream.Position = 0;
+            using (StreamReader sr = new StreamReader(memoryStream, Encoding.Default))
+            using (JsonTextReader reader = new JsonTextReader(sr))
+            {
+                try
+                {
+                    JsonSerializer serializer = new JsonSerializer();
+                    package = serializer.Deserialize<Package>(reader);
+                }
+                catch (Exception)
+                {
+                    memoryStream.Position = 0;
+
+                    StringBuilder sb = new StringBuilder();
+                    Int32 nc;
+                    Char c;
+                    using (StreamReader rdr = new StreamReader(memoryStream, Encoding.Default))
+                    {
+                        while ((nc = rdr.Read()) != -1)
+                        {
+                            c = (Char)nc;
+                            if (c != '\0') sb.Append(c);
+                        }
+                    }
+                    string json = sb.ToString();
+                    package = JsonConvert.DeserializeObject<Package>(json);
+                    //Console.WriteLine("was error");
+                }
+            }
+            
             try
             {
-                package = JsonConvert.DeserializeObject<Package>(json, _serializerSettings);
+               // package = JsonConvert.DeserializeObject<Package>(json, _serializerSettings);
                 JsonSerializer serializer = new JsonSerializer();
+                serializer.TypeNameHandling = TypeNameHandling.All;
 #pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
                 object p = serializer.Deserialize(new JTokenReader(package.ClassBytes), package.ClassType);

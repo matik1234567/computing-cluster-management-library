@@ -13,6 +13,7 @@ using Newtonsoft.Json;
 using Timer = System.Timers.Timer;
 using CCMLibrary.Enums;
 using System.Drawing;
+using System.Net.Security;
 
 namespace CCMLibrary
 {
@@ -136,7 +137,7 @@ namespace CCMLibrary
            
             if (responseHeader == ServerResponse.ProjectGlobalAttributes && responseData != null)
             {
-                _runtime.ProjectData = (ProjectData)responseData;
+                _runtime.ProjectData = (GlobalVariables)responseData;
                 _runtime.Log?.Write(LogType.Information, "client", $"received global attributes");
 
                 InitHearbeatSignal();
@@ -150,14 +151,26 @@ namespace CCMLibrary
 
         private (ServerResponse, object?) SendToServer(ClientRequest requestHeader, object? requestData)
         {
+            if(_runtime.Log?.LogLevel == LogLevel.Debug)
+            {
+                _runtime.Log?.Write(LogType.Information, "client", $"[request]: {requestHeader}");
+            }
+           
+            ServerResponse serverResponse;
+            object? responseData;
             if (_clientSocket == null)
             {
-                return SendToServerVirtual(requestHeader, requestData);
+                (serverResponse, responseData) = SendToServerVirtual(requestHeader, requestData);
             }
             else
             {
-                return SendToServerTcp(requestHeader, requestData);
+                (serverResponse, responseData) = SendToServerTcp(requestHeader, requestData);
             }
+            if (_runtime.Log?.LogLevel == LogLevel.Debug)
+            {
+                _runtime.Log?.Write(LogType.Information, "client", $"[response]: {serverResponse}");
+            }
+            return (serverResponse, responseData); 
         }
 
         /// <summary>
@@ -191,16 +204,19 @@ namespace CCMLibrary
 
                 byte[] request = PackageHandler.SerializeObject(requestHeader, requestData);
                 string json = "";
+               // MemoryStream ms;
                 try
                 {
+                   // ms = new MemoryStream();
                     _clientSocket.Send(request);
                     byte[] temp = new byte[4];
                     _clientSocket.Receive(temp);
                     int size = BitConverter.ToInt32(temp, 0);
-
+                    List<Task<string>> tasks = new List<Task<string>>();
                     while (size > 0)
                     {
                         byte[] bufferTemp;
+                        
                         if (size < _clientSocket.ReceiveBufferSize)
                         {
                             bufferTemp = new byte[size];
@@ -209,19 +225,31 @@ namespace CCMLibrary
                         {
                             bufferTemp = new byte[_clientSocket.ReceiveBufferSize];
                         }
+                        bufferTemp = new byte[_clientSocket.ReceiveBufferSize];
                         int rec = _clientSocket.Receive(bufferTemp, 0, bufferTemp.Length, 0);
                         size -= rec;
-                        json += PackageHandler.GetStringFromBytes(ref bufferTemp);
+                        // ms.Write(bufferTemp, 0, bufferTemp.Length);
+                        Task<string> task = new Task<string>(() => { return PackageHandler.GetStringFromBytes(ref bufferTemp); });
+                        tasks.Add(task);
+                        tasks[^1].Start();
+                       // json += PackageHandler.GetStringFromBytes(ref bufferTemp);
 
                     }
-                   
+                    Task.WaitAll(tasks.ToArray());
+                    StringBuilder stringBuilder1 = new StringBuilder();
+                    foreach (var t in tasks)
+                    {
+                        stringBuilder1.Append(t.Result);
+                    }
+                    json = stringBuilder1.ToString();
+
                 }
                 catch (Exception)
                 {
                     return (ServerResponse.Null, null);
                     // server close/damage
                 }
-
+                
                 if (json == "")
                 {
                     return (ServerResponse.Null, null);
@@ -233,6 +261,7 @@ namespace CCMLibrary
                 try
                 {
                     (responseHeader, responseData) = ((ServerResponse, object))PackageHandler.DeserializeObject(json);
+                   // ms.Dispose();
                 }
                 catch (Exception e)
                 {
@@ -258,14 +287,23 @@ namespace CCMLibrary
 
             TaskRuleAttribute taskRule = _runtime.GetTasksRule();
             int taskCount = 1;
+            int maxResources = 0;
 
-            if(taskRule.CoresMultiply == -1)
+            if(taskRule.TaskExecution == TaskExecution.Sync)
             {
                 taskCount = taskRule.TasksCount;
             }
             else
             {
-                taskCount = taskRule.CoresMultiply * _runtime.ClientData.ProcessorCount;
+                if (taskRule.Cores != -1)
+                {
+                    taskCount = (taskRule.CoresMultiply* _runtime.ClientData.ProcessorCount);
+                }
+                else
+                {
+                    taskCount = taskRule.TasksCount;
+                }
+                maxResources = (int)(taskRule.Cores * _runtime.ClientData.ProcessorCount);
             }
 
             while (!_forceStop)
@@ -307,7 +345,7 @@ namespace CCMLibrary
                         }
                         else
                         {
-                            HandleTaskAsync(tasks);
+                            HandleTaskAsync(tasks, maxResources);
                         }
                         watchRunTasks.Stop();
 
@@ -337,10 +375,9 @@ namespace CCMLibrary
         /// </summary>
         /// <param name="nodeTasks"></param>
         /// <returns></returns>
-        private List<NodeTask> HandleTaskAsync(List<NodeTask> nodeTasks)
+        private List<NodeTask> HandleTaskAsync(List<NodeTask> nodeTasks, int maxResources)
         {
-            
-            TaskComposer.Init(_runtime.ClientData.ProcessorCount);
+            TaskComposer.Init(maxResources);
             Task[] tasks = new Task[nodeTasks.Count];
 
             for (int i = 0; i < nodeTasks.Count; i++)

@@ -20,11 +20,11 @@ namespace CCMLibrary
         private Client? _client;
         private ClientConnectionData? _connectionData;
 
-        public ProjectData? ProjectData;
+        public GlobalVariables? ProjectData;
         public ClientData ClientData;
         public dynamic? ClientFront;
-        public Log? Log;
-        public LogUser? LogUser;
+        public Logger? Log;
+        public LoggerFront? LogUser;
 
         private bool _isRunning = false;
 
@@ -33,7 +33,7 @@ namespace CCMLibrary
         /// </summary>
         /// <param name="log">user defined Log class</param>
         /// <param name="logUser">user defined UserLog class</param>
-        public ClientRuntime(Log? log, LogUser? logUser)
+        public ClientRuntime(Logger? log, LoggerFront? logUser)
         {
             if(log == null)
             {
