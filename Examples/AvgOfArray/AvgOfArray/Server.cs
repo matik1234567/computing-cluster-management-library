@@ -29,7 +29,7 @@ namespace AvgOfArray
             stopwatch.Start();
             Random rnd = new Random();
             List<int> list = new List<int>();
-            for(int i = 0; i < 1000000; i++)
+            for(int i = 0; i < GetGlobalAttribute("listCount"); i++)
             {
                 list.Add(rnd.Next(20));
                 if (i!=0 && i%100 == 0)

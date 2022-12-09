@@ -26,14 +26,17 @@ namespace MethaneMeasurement
             {
                 //define otput for result
                 ResultLogCsv resultLog = new ResultLogCsv();
-                GlobalVariables globalVariables = new GlobalVariables(new Dictionary<string, dynamic> { { "dataDirectory", @"C:\Users\machu\Desktop\methane_data.csv" } });
+                GlobalVariables globalVariables = new GlobalVariables(new Dictionary<string, dynamic> {
+                    { "dataDirectory", @"C:\Users\machu\Desktop\methane_data.csv" } 
+                });
                 
                 ServerRuntime serverRuntime = new ServerRuntime(globalVariables, null, resultLog);
                 serverRuntime.Server(serverPort);
                 _ = serverRuntime.RunServerAsync();
                 serverRuntime.Invite();
 
-                StartClient(serverIp, serverPort); // run local client
+                // start local client
+                StartClient(serverIp, serverPort); 
 
                 // wait for clients to join
                 Console.ReadLine();
