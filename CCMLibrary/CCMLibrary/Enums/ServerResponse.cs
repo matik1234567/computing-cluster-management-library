@@ -9,7 +9,7 @@ namespace CCMLibrary.Enums
     /// <summary>
     /// Enum class define possible server response message header
     /// </summary>
-    internal enum ServerResponse
+    public enum ServerResponse
     {
         ProjectGlobalAttributes,
         EnrollmentCanceled,

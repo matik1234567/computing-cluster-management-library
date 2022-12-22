@@ -7,37 +7,22 @@ using System.Threading.Tasks;
 
 namespace CCMLibrary
 {
-    internal class VirtualConnection
+    public class VirtualConnection
     {
-        class ConnectionModel
-        {
-#pragma warning disable CS0649 // Field 'VirtualConnection.ConnectionModel.Request' is never assigned to, and will always have its default value
-            public (ClientRequest, object?) Request;
-#pragma warning restore CS0649 // Field 'VirtualConnection.ConnectionModel.Request' is never assigned to, and will always have its default value
-#pragma warning disable CS0649 // Field 'VirtualConnection.ConnectionModel.Response' is never assigned to, and will always have its default value
-            public (ClientRequest, object?) Response;
-#pragma warning restore CS0649 // Field 'VirtualConnection.ConnectionModel.Response' is never assigned to, and will always have its default value
-        }
-
-        public static VirtualConnection? Connection;
-
         //private List<ConnectionModel> connections = new List<ConnectionModel>();
         private object _locker = new();
 
         private (ClientRequest, object?) _request;
         private (ServerResponse, object?) _response;
 
-        private bool _isClientRequestAvailable = false;
-        private bool _isClientResponseAvailable = false;
+        private volatile bool _isClientRequestAvailable = false;
+        private volatile bool _isClientResponseAvailable = false;
 
-        public VirtualConnection()
-        {
-            Connection = this;
-        }
+        private volatile bool _stopVirtualConnection = false;
 
-        public static bool IsClientConnected()
+        public void Stop()
         {
-            return Connection != null;
+            _stopVirtualConnection = true;
         }
 
         /// <summary>
@@ -45,7 +30,7 @@ namespace CCMLibrary
         /// </summary>
         /// <param name="serverResponse"></param>
         /// <param name="data"></param>
-        public void SendResponse(ServerResponse serverResponse, object? data)
+        public void SendResponse(ServerResponse serverResponse, ref object? data)
         {
             lock(_locker)
             {
@@ -63,7 +48,10 @@ namespace CCMLibrary
         {
             while (!_isClientRequestAvailable)
             {
-                ;
+                if (_stopVirtualConnection)
+                {
+                    return (ClientRequest.None, null);
+                }
             }
             lock (_locker)
             {
@@ -79,7 +67,7 @@ namespace CCMLibrary
         /// </summary>
         /// <param name="request"></param>
         /// <param name="data"></param>
-        public void SendRequest(ClientRequest request, object? data) 
+        public void SendRequest(ClientRequest request, ref object? data) 
         {
             lock(_locker)
             {
@@ -97,7 +85,10 @@ namespace CCMLibrary
         {
             while (!_isClientResponseAvailable)
             {
-                ;
+                if (_stopVirtualConnection)
+                {
+                    return (ServerResponse.Null, null);
+                }
             }
             lock (_locker)
             {

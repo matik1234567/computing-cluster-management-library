@@ -12,8 +12,8 @@ namespace CCMLibrary
     /// </summary>
     internal class TaskComposer
     {
-        private static int _availableResources = 0;
-        private static List<NodeTask> _tasks = new List<NodeTask>();
+        private volatile static int _availableResources = 0;
+        private volatile static List<NodeTask> _tasks = new List<NodeTask>();
         private static object locker = new object();
 
         public static void Init(int maxResources)
@@ -24,10 +24,10 @@ namespace CCMLibrary
 
         public static int GetAvailableResources()
         {
-            lock (locker)
-            {
+            //lock (locker)
+            //{
                 return _availableResources;
-            }
+            //}
         }
 
         public static void Hold()
@@ -36,6 +36,7 @@ namespace CCMLibrary
             {
                 _availableResources--;
             }
+           
         }
 
         public static void Release(NodeTask nodeTask)

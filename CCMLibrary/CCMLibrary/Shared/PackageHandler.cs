@@ -20,24 +20,6 @@ namespace CCMLibrary
 
         public static string GetStringFromBytes(ref byte[] buffer)
         {
-            /*
-           string value = "";
-           value += Encoding.UTF8.GetString(buffer);
-           while(value.Length < buffer.Length)
-           {
-               int len = value.Length;
-               value += Encoding.UTF8.GetString(buffer, len+1, buffer.Length);
-           }
-           return value;*/
-            /*
-            int index_null = Array.IndexOf(buffer, 0);
-            if (index_null == -1 || index_null == buffer.Length-1)
-            {
-                return Encoding.Default.GetString(buffer);
-            }*/
-
-
-            
             char[] chars = Encoding.Default.GetChars(buffer);
             int index_null = Array.IndexOf(chars, '\0');
             if (index_null == -1 || index_null == chars.Length - 1)
@@ -110,13 +92,11 @@ namespace CCMLibrary
                     }
                     string json = sb.ToString();
                     package = JsonConvert.DeserializeObject<Package>(json);
-                    //Console.WriteLine("was error");
                 }
             }
             
             try
             {
-               // package = JsonConvert.DeserializeObject<Package>(json, _serializerSettings);
                 JsonSerializer serializer = new JsonSerializer();
                 serializer.TypeNameHandling = TypeNameHandling.All;
 #pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
@@ -136,8 +116,6 @@ namespace CCMLibrary
 
         public static (Enum, object) DeserializeObject(string json)
         {
-            //string json = Encoding.UTF8.GetString(byteArr);
-            //json = json.Trim(new char[] { '\uFEFF', '\u200B' });
             Package? package;
             try
             {

@@ -9,7 +9,7 @@ namespace CCMLibrary.Enums
     /// <summary>
     /// Enum class defne message header on client TCP request
     /// </summary>
-    internal enum ClientRequest
+    public enum ClientRequest
     {
         EnrollProject,
         CancelEnrollment,

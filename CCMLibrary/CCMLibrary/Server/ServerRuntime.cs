@@ -21,7 +21,7 @@ namespace CCMLibrary
         public Logger? Log;
         public LoggerFront? LogUser;
 
-        private bool _onStartInProgress = false;
+        private volatile bool _onStartInProgress = false;
 
         public ServerRuntime(GlobalVariables? projectData, Logger? log, LoggerFront? logUser)
         {
@@ -75,6 +75,7 @@ namespace CCMLibrary
         {
             if(Runtime.runtimeMode == RuntimeMode.Virtual)
             {
+                virtualConnection = new VirtualConnection();
                 Log?.Write(LogType.Information, "server", "Virtual mode set");
                 _brokerServer = new BrokerServer(this);
             }
@@ -82,7 +83,6 @@ namespace CCMLibrary
             {
                 _brokerServer = new BrokerServer(port, this);
             }
-           
         }
 
         public void Server()
@@ -92,6 +92,7 @@ namespace CCMLibrary
                 Log?.Write(LogType.Exception, "server", "TCP mode set, consider change to Virtual");
                 throw new RuntimeException("TCP runtime called as Virtual");
             }
+            virtualConnection = new VirtualConnection();
             _brokerServer = new BrokerServer(this);
         }
 
@@ -115,8 +116,12 @@ namespace CCMLibrary
             _brokerServer.SendingProjectInvitation();
         }
 
-        public async Task Invite(int expectedClients)
+        public async Task InviteAsync(int expectedClients)
         {
+            if (_brokerServer == null)
+            {
+                throw new RuntimeException(RuntimeException.ServerMissingEror);
+            }
             try
             {
                 Invite();
@@ -128,6 +133,26 @@ namespace CCMLibrary
             await Task.Run(() => {
                 while (WorkflowService.GetCount(null)<expectedClients) { }
             });
+        }
+
+
+        public void Invite(int expectedClients)
+        {
+            if (_brokerServer == null)
+            {
+                throw new RuntimeException(RuntimeException.ServerMissingEror);
+            }
+            try
+            {
+                Invite();
+            }
+            catch (RuntimeException)
+            {
+                throw;
+            }
+           
+            while (WorkflowService.GetCount(null) < expectedClients) { }
+            
         }
 
         public async Task RunTaskAsync()
@@ -246,12 +271,12 @@ namespace CCMLibrary
                 }
                 ServerFront.OnStop();
                 Freeze();
+
             }
             else
             {
                 throw new Exception($"Server in {serverPhase} phase");
             }
-
         }
 
 #pragma warning disable CS1998 // This async method lacks 'await' operators and will run synchronously. Consider using the 'await' operator to await non-blocking API calls, or 'await Task.Run(...)' to do CPU-bound work on a background thread.
@@ -315,12 +340,10 @@ namespace CCMLibrary
             _brokerServer.ProjectFreeze();
             NodeTaskService.Reset();
 
-
             while (WorkflowService.IsInProgressTasks())
             {
                 ;
             }
-       
             WorkflowService.Reset();
         }
 

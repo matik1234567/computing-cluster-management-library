@@ -110,13 +110,17 @@ namespace CCMLibrary
         /// <returns>TaskRuleAttribute if exist else default</returns>
         public TaskRuleAttribute GetTasksRule()
         {
+            if (taskRuleAttribute != null)
+            {
+                return taskRuleAttribute;
+            }
             Attribute[] attrs = Attribute.GetCustomAttributes(this.ClientFront?.GetType());
 
             foreach (Attribute attr in attrs)
             {
                 if (attr is TaskRuleAttribute)
                 {
-                    return (TaskRuleAttribute)attrs[0];
+                    return (TaskRuleAttribute)attr;//attrs[0];
                 }
             }
             return new TaskRuleAttribute();
@@ -174,7 +178,7 @@ namespace CCMLibrary
         /// </summary>
         /// <returns></returns>
         /// <exception cref="RuntimeException"></exception>
-        public async Task RunClient()
+        public async Task RunClientAsync()
         {
             
             if (_client == null)
@@ -197,6 +201,40 @@ namespace CCMLibrary
                 
             }
             catch(Exception e)
+            {
+                return;
+            }
+#pragma warning restore CS0168 // The variable 'e' is declared but never used
+            _isRunning = false;
+        }
+
+        /// <summary>
+        /// Start Client requesting process
+        /// </summary>
+        /// <returns></returns>
+        /// <exception cref="RuntimeException"></exception>
+        public void RunClient()
+        {
+
+            if (_client == null)
+            {
+                throw new RuntimeException(RuntimeException.ClientMissingEror);
+            }
+
+#pragma warning disable CS8604 // Possible null reference argument for parameter 'type' in 'object? Activator.CreateInstance(Type type)'.
+            ClientFront = Activator.CreateInstance(Runtime.clientType);
+#pragma warning restore CS8604 // Possible null reference argument for parameter 'type' in 'object? Activator.CreateInstance(Type type)'.
+            ClientFront?.Init(this);
+
+            _isRunning = true;
+
+#pragma warning disable CS0168 // The variable 'e' is declared but never used
+            try
+            {
+                ClientFront?.OnInit();
+                _client?.RunClient();
+            }
+            catch (Exception e)
             {
                 return;
             }

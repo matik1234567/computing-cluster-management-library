@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -26,15 +27,16 @@ namespace CCMLibrary
     /// </summary>
     public class WorkflowService
     {
-        private Dictionary<string, WorkflowData> _clientsWorkflow = new Dictionary<string, WorkflowData>();
+        private volatile Dictionary<string, WorkflowData> _clientsWorkflow = new Dictionary<string, WorkflowData>();
 
         private static object locker = new();
+        private static object _lockerDict = new();
 
-        private Timer? _heartbeatCheck;
-        private static int _heartbeatTolerance = 1000;
-        private Stopwatch _watch = new Stopwatch();
+        private volatile Timer? _heartbeatCheck;
+        private volatile static int _heartbeatTolerance = 1000;
+        private volatile Stopwatch _watch = new Stopwatch();
 
-        private ServerRuntime _runtime;
+        private volatile ServerRuntime _runtime;
 
         public WorkflowService(ServerRuntime serverRuntime)
         {
@@ -54,11 +56,13 @@ namespace CCMLibrary
             }
             if (!_clientsWorkflow.ContainsKey(iPAddress))
             {
-                WorkflowData workdlowData = new WorkflowData(client);
-                _clientsWorkflow[iPAddress] = workdlowData;
-                _clientsWorkflow[iPAddress].LastBeat = (int)_watch.ElapsedMilliseconds;
-                _clientsWorkflow[iPAddress].Status = ConnectionStatus.Normal;
-
+                lock (_lockerDict)
+                {
+                    WorkflowData workdlowData = new WorkflowData(client);
+                    _clientsWorkflow[iPAddress] = workdlowData;
+                    _clientsWorkflow[iPAddress].LastBeat = (int)_watch.ElapsedMilliseconds;
+                    _clientsWorkflow[iPAddress].Status = ConnectionStatus.Normal;
+                }
             }
         }
 
@@ -95,7 +99,7 @@ namespace CCMLibrary
 #pragma warning disable CS8604 // Possible null reference argument for parameter 'iaskIds' in 'void NodeTaskService.ResendTasks(ulong[] iaskIds)'.
                 _runtime.NodeTaskService.ResendTasks(_clientsWorkflow[iPAddress].TaskIdsInProgress);
 #pragma warning restore CS8604 // Possible null reference argument for parameter 'iaskIds' in 'void NodeTaskService.ResendTasks(ulong[] iaskIds)'.
-                _clientsWorkflow[iPAddress].TaskIdsInProgress = null;
+                _clientsWorkflow[iPAddress].TaskIdsInProgress = new ulong[0];
             }
         }
 
@@ -127,7 +131,7 @@ namespace CCMLibrary
 
         public void ReleaseInProgressTasks(string iPAddress)
         {
-            _clientsWorkflow[iPAddress].TaskIdsInProgress = null;
+            _clientsWorkflow[iPAddress].TaskIdsInProgress = new ulong[0];
         }
 
         public int GetTaskCountFor(string iPAddress)
@@ -137,7 +141,14 @@ namespace CCMLibrary
 
         public bool IsValidReturn(string iPAddress)
         {
-            return _clientsWorkflow[iPAddress].TaskIdsInProgress != null;
+            try
+            {
+                return _clientsWorkflow[iPAddress].TaskIdsInProgress?.Length != 0;
+            }
+            catch(Exception e)
+            {
+                return false;
+            }
         }
 
         public bool IsNoRunningTasks()
@@ -145,7 +156,7 @@ namespace CCMLibrary
             
             foreach(var clientW in _clientsWorkflow)
             {
-                if(clientW.Value.TaskIdsInProgress != null)
+                if(clientW.Value.TaskIdsInProgress?.Length != 0)
                 {
                     return false;
                 }
@@ -157,7 +168,7 @@ namespace CCMLibrary
         {
             lock (locker)
             {
-                return _clientsWorkflow.Any((c) => c.Value.TaskIdsInProgress != null);
+                return _clientsWorkflow.Any((c) => c.Value.TaskIdsInProgress?.Length != 0);
             }
         }
 
@@ -174,7 +185,7 @@ namespace CCMLibrary
         {
             foreach(var client in _clientsWorkflow)
             {
-                client.Value.TaskIdsInProgress = null;
+                client.Value.TaskIdsInProgress = new ulong[0];
                 client.Value.Status = ConnectionStatus.Undefined;
             }
         }

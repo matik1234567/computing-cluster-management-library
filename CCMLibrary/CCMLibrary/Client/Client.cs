@@ -109,9 +109,9 @@ namespace CCMLibrary
         /// <returns></returns>
         private (ServerResponse, object?) SendToServerVirtual(ClientRequest requestHeader, object? requestData)
         {
-            VirtualConnection.Connection?.SendRequest(requestHeader, requestData);
+            Runtime.virtualConnection?.SendRequest(requestHeader, ref requestData);
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
-            return VirtualConnection.Connection.ReceiveResponse();
+            return Runtime.virtualConnection.ReceiveResponse();
 #pragma warning restore CS8602 // Dereference of a possibly null reference.
         }
 
@@ -204,10 +204,8 @@ namespace CCMLibrary
 
                 byte[] request = PackageHandler.SerializeObject(requestHeader, requestData);
                 string json = "";
-               // MemoryStream ms;
                 try
                 {
-                   // ms = new MemoryStream();
                     _clientSocket.Send(request);
                     byte[] temp = new byte[4];
                     _clientSocket.Receive(temp);
@@ -228,12 +226,9 @@ namespace CCMLibrary
                         bufferTemp = new byte[_clientSocket.ReceiveBufferSize];
                         int rec = _clientSocket.Receive(bufferTemp, 0, bufferTemp.Length, 0);
                         size -= rec;
-                        // ms.Write(bufferTemp, 0, bufferTemp.Length);
                         Task<string> task = new Task<string>(() => { return PackageHandler.GetStringFromBytes(ref bufferTemp); });
                         tasks.Add(task);
                         tasks[^1].Start();
-                       // json += PackageHandler.GetStringFromBytes(ref bufferTemp);
-
                     }
                     Task.WaitAll(tasks.ToArray());
                     StringBuilder stringBuilder1 = new StringBuilder();
@@ -295,15 +290,16 @@ namespace CCMLibrary
             }
             else
             {
+                maxResources = (int)(taskRule.Cores * _runtime.ClientData.ProcessorCount);
                 if (taskRule.Cores != -1)
                 {
-                    taskCount = (taskRule.CoresMultiply* _runtime.ClientData.ProcessorCount);
+                    taskCount = (taskRule.CoresMultiply* maxResources);
                 }
                 else
                 {
                     taskCount = taskRule.TasksCount;
                 }
-                maxResources = (int)(taskRule.Cores * _runtime.ClientData.ProcessorCount);
+                
             }
 
             while (!_forceStop)
@@ -332,8 +328,11 @@ namespace CCMLibrary
                     case ServerResponse.Poison:
                         _timer?.Dispose();
                         return;
+                    case ServerResponse.Null:
+                        _timer?.Dispose();
+                        return;
                     case ServerResponse.Wait:
-                        await Task.Delay((int)responseData);
+                        Thread.Sleep((int)responseData);
                         break;
                     case ServerResponse.ProjectTaskData:
                         List<NodeTask> tasks = (List<NodeTask>)responseData;
@@ -364,8 +363,7 @@ namespace CCMLibrary
 
             if (_forceStop)
             {
-                (responseHeader, responseData) = SendToServer(ClientRequest.CancelEnrollment, null);
-                
+                (responseHeader, responseData) = SendToServer(ClientRequest.CancelEnrollment, null); 
             }
             _isRunning = false;
         }
@@ -420,5 +418,4 @@ namespace CCMLibrary
         }
 
     }
-    
 }

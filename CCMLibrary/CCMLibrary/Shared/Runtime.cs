@@ -12,9 +12,10 @@ namespace CCMLibrary
     public class Runtime
     {
         public static RuntimeMode runtimeMode = RuntimeMode.TCP;
-
+        public static VirtualConnection? virtualConnection;
         protected static Type? clientType;
         protected static Type? serverType;
+        protected static TaskRuleAttribute? taskRuleAttribute;
 
         public static void IntroduceFronted(Type serverType, Type clientType) 
         {
@@ -28,6 +29,11 @@ namespace CCMLibrary
             }
             Runtime.serverType = serverType;
             Runtime.clientType = clientType;
+        }
+
+        public static void SetClientAttributeDynamiclly(TaskRuleAttribute taskRule) 
+        {
+            taskRuleAttribute = taskRule;
         }
 
         public static void SetMode(RuntimeMode mode)

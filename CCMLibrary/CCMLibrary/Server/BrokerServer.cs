@@ -22,18 +22,20 @@ namespace CCMLibrary
     /// </summary>
     internal class BrokerServer
     {
-        private IPAddress? _ipAddress;
-        private Socket? _serverSocket;
-        private Int16 _port;
+        private volatile IPAddress? _ipAddress;
+        private volatile Socket? _serverSocket;
+        private volatile Int16 _port;
 
-        private ServerPhase _phase = ServerPhase.Idle;
-        private DecisionTable<ServerPhase, ClientRequest> _driver;
+        private volatile ServerPhase _phase = ServerPhase.Idle;
+        private volatile DecisionTable<ServerPhase, ClientRequest> _driver;
 
-        private static int _clientWaitOnTaskAvailabiltyMili = 100;
-        private ServerRuntime _serverRuntime;
-        private List<Socket> _clientSockets = new List<Socket>();
+        private volatile static int _clientWaitOnTaskAvailabiltyMili = 50;
+        private volatile ServerRuntime _serverRuntime;
+        private volatile List<Socket> _clientSockets = new List<Socket>();
 
-        private string _machineIPAddress;
+        private volatile string _machineIPAddress;
+
+        private volatile bool _cancelVirtualConTask = false;
 
         /// <summary>
         /// Constructor for TCP runtime mode
@@ -68,12 +70,16 @@ namespace CCMLibrary
         {
             return _phase;
         }
-
+        private object l = new object();
         private (ServerResponse, object) HandleResponse(ClientRequest request, object requestData, object senderIP)
         {
             try
             {
-                return ((ServerResponse, object))_driver.GetActionResults(_phase, request, requestData, senderIP);
+                lock (l)
+                {
+                    return ((ServerResponse, object))_driver.GetActionResults(_phase, request, requestData, senderIP);
+                }
+                
             }
             catch (Exception)
             {
@@ -103,18 +109,20 @@ namespace CCMLibrary
 
         private void ReceiveCallbackVirtual()
         {
-            while (VirtualConnection.IsClientConnected() == false)
+            while (_cancelVirtualConTask!=true)
             {
-                continue;
-            }
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
-            (ClientRequest requestHeader, object? requestData) = VirtualConnection.Connection.ReceiveRequest();
+                (ClientRequest requestHeader, object? requestData) = Runtime.virtualConnection.ReceiveRequest();
+                if (requestHeader == ClientRequest.None)
+                {
+                    break;
+                }
 #pragma warning restore CS8602 // Dereference of a possibly null reference.
 #pragma warning disable CS8604 // Possible null reference argument for parameter 'requestData' in '(ServerResponse, object) BrokerServer.HandleResponse(ClientRequest request, object requestData, object senderIP)'.
-            (ServerResponse responseHeader, object? responseData) = HandleResponse((ClientRequest)requestHeader, requestData, "client");
+                (ServerResponse responseHeader, object? responseData) = HandleResponse((ClientRequest)requestHeader, requestData, "client");
 #pragma warning restore CS8604 // Possible null reference argument for parameter 'requestData' in '(ServerResponse, object) BrokerServer.HandleResponse(ClientRequest request, object requestData, object senderIP)'.
-            VirtualConnection.Connection.SendResponse(responseHeader, responseData);
-            ReceiveCallbackVirtual();
+                Runtime.virtualConnection.SendResponse(responseHeader, ref responseData);
+            }
         }
 
         private void ReceiveCallback(IAsyncResult AR)
@@ -173,9 +181,6 @@ namespace CCMLibrary
                    // json += PackageHandler.GetStringFromBytes(ref bufferTemp);
                 }
                 socket.EndReceive(AR);
-                
-
-
             }
             catch(Exception e)
             {
@@ -249,7 +254,8 @@ namespace CCMLibrary
         {
             if(Runtime.runtimeMode == RuntimeMode.Virtual)
             {
-                _ = Task.Run(() => ReceiveCallbackVirtual());
+                _cancelVirtualConTask = false;
+                _ =  Task.Run(()=> { ReceiveCallbackVirtual(); });
             }
             else
             {
@@ -266,11 +272,16 @@ namespace CCMLibrary
         {
             foreach (var socket in _clientSockets)
             {
-                socket.Shutdown(SocketShutdown.Both);
-                socket.Close();
+                if (socket.Connected)
+                {
+                    socket.Shutdown(SocketShutdown.Both);
+                    socket.Close();
+                }
             }
 
             _serverSocket?.Close();
+            _cancelVirtualConTask = true;
+            Runtime.virtualConnection?.Stop();
             _serverRuntime.Log?.Write(LogType.Information, _machineIPAddress, "Server stop");
         }
 
@@ -278,12 +289,14 @@ namespace CCMLibrary
         public void SendingProjectInvitation()
         {
             this._phase = ServerPhase.SendingInvitation;
+            _clientWaitOnTaskAvailabiltyMili = 10;
             _serverRuntime.Log?.Write(LogType.Information, _machineIPAddress, "Invitations phase");
         }
 
         public void ProjectInProgress()
         {
             this._phase = ServerPhase.InProgress;
+            _clientWaitOnTaskAvailabiltyMili = 1;
             _serverRuntime.Log?.Write(LogType.Information, _machineIPAddress,"Tasks progress phase");
         }
 
@@ -291,12 +304,14 @@ namespace CCMLibrary
         public void ProjectCancelation()
         {
             this._phase = ServerPhase.Cancelation;
+            _cancelVirtualConTask = true;
             _serverRuntime.Log?.Write(LogType.Information, _machineIPAddress, "Cancellation phase");
         }
 
         public void ProjectFreeze()
         {
             this._phase = ServerPhase.Freeze;
+            _clientWaitOnTaskAvailabiltyMili = 10;
             _serverRuntime.Log?.Write(LogType.Information, _machineIPAddress, "Freeze phase");
         }
 
@@ -335,40 +350,54 @@ namespace CCMLibrary
             return (ServerResponse.Poison, "project finished");
         }
 
+       // private object lockerTasks = new object();
         public (ServerResponse, object?) NodeTaskData(object ob, object senderIP)
         {
-            if (_serverRuntime.NodeTaskService.IsEmpty())
-            {
-                return (ServerResponse.Wait, _clientWaitOnTaskAvailabiltyMili);
-            }
+           // lock (lockerTasks)
+           // {
 
-            var tasks = _serverRuntime.NodeTaskService.GetTaskRange((int)ob);
-            ulong[] ids = tasks.Select(a => a.GetId()).ToArray();
-            _serverRuntime.WorkflowService.SetInProgressTasks((string)senderIP, ids);
-            return (ServerResponse.ProjectTaskData, tasks);
+                if (_serverRuntime.NodeTaskService.IsEmpty())
+                {
+
+                    return (ServerResponse.Wait, _clientWaitOnTaskAvailabiltyMili);
+                }
+
+                var tasks = _serverRuntime.NodeTaskService.GetTaskRange((int)ob);
+
+                ulong[] ids = tasks.Select(a => a.GetId()).ToArray();
+                _serverRuntime.WorkflowService.SetInProgressTasks((string)senderIP, ids);
+
+                // Console.WriteLine("end node task data" + (string)senderIP);
+                return (ServerResponse.ProjectTaskData, tasks);
+           // }
         }
 
         // incoming results from previos and send new
         public (ServerResponse, object?) NodeTaskDataNext(object ob, object senderIP)
         {
-            //ob could be task response chek it here
-            (List<NodeTask> nodeTask, int taskCountRequest) = ((List<NodeTask>, int))ob;
-            if(nodeTask.Count > 0 && _serverRuntime.WorkflowService.IsValidReturn((string)senderIP))
-            {
-                _serverRuntime.NodeTaskService.ReturnTaskRange(nodeTask);
-                _serverRuntime.WorkflowService.ReleaseInProgressTasks((string)senderIP);
-            }
+            //lock (lockerTasks)
+           // {
+                //Console.WriteLine("node task data" + (string)senderIP);
+                //ob could be task response chek it here
+                (List<NodeTask> nodeTask, int taskCountRequest) = ((List<NodeTask>, int))ob;
+                if (nodeTask.Count > 0 && _serverRuntime.WorkflowService.IsValidReturn((string)senderIP))
+                {
+                    _serverRuntime.NodeTaskService.ReturnTaskRange(nodeTask);
+                    _serverRuntime.WorkflowService.ReleaseInProgressTasks((string)senderIP);
+                }
 
-            if (_serverRuntime.NodeTaskService.IsEmpty())
-            {
-                return (ServerResponse.Wait, _clientWaitOnTaskAvailabiltyMili);
-            }
+                if (_serverRuntime.NodeTaskService.IsEmpty())
+                {
+                    return (ServerResponse.Wait, _clientWaitOnTaskAvailabiltyMili);
+                }
+                var tasks = _serverRuntime.NodeTaskService.GetTaskRange(taskCountRequest);
 
-            var tasks = _serverRuntime.NodeTaskService.GetTaskRange(taskCountRequest);
-            ulong[] ids = tasks.Select(a => a.GetId()).ToArray();
-            _serverRuntime.WorkflowService.SetInProgressTasks((string)senderIP, ids);
-            return (ServerResponse.ProjectTaskData, tasks);
-           
+                ulong[] ids = tasks.Select(a => a.GetId()).ToArray();
+                _serverRuntime.WorkflowService.SetInProgressTasks((string)senderIP, ids);
+
+                // Console.WriteLine("end node task data" + (string)senderIP);
+                return (ServerResponse.ProjectTaskData, tasks);
+           // }
         }
 
         public (ServerResponse, object?) ProjectPoisoning(object ob, object senderIP)

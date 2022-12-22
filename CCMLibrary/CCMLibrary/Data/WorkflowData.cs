@@ -15,7 +15,7 @@ namespace CCMLibrary
         public string Name { get; set; }
         public int ProcessorCount { get; set; }
         public string OsName { get; set; }
-        public ulong[]? TaskIdsInProgress { get; set; }
+        public ulong[] TaskIdsInProgress { get; set; }
         public ConnectionStatus Status { get; set; }
         public int LastBeat { get; set; }
 
@@ -34,6 +34,7 @@ namespace CCMLibrary
             OsName = clientData.OsName;
             Status = ConnectionStatus.Undefined;
             LastBeat = 0;
+            TaskIdsInProgress = new ulong[0];
         }
 
 

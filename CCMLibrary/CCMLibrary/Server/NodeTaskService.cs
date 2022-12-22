@@ -12,10 +12,10 @@ namespace CCMLibrary
     /// </summary>
     public class NodeTaskService
     {
-        private ConcurrentQueue<NodeTask> _clusterTaskQueue = new ConcurrentQueue<NodeTask>();
+        private volatile ConcurrentQueue<NodeTask> _clusterTaskQueue = new ConcurrentQueue<NodeTask>();
 
-        private OutcomingNodeTaskController _outNodeTaskController = new OutcomingNodeTaskController();
-        private IncomingNodeTaskController _inNodeTaskController = new IncomingNodeTaskController();
+        private volatile OutcomingNodeTaskController _outNodeTaskController = new OutcomingNodeTaskController();
+        private volatile IncomingNodeTaskController _inNodeTaskController = new IncomingNodeTaskController();
 
         private ulong _taskLastId = 0;
         private Object _locker = new();

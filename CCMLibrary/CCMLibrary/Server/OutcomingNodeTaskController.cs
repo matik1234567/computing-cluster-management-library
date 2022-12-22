@@ -60,7 +60,10 @@ namespace CCMLibrary
 
         public ulong GetTotal()
         {
-            return _totalTaskCount;
+            lock (locker)
+            {
+                return _totalTaskCount;
+            }
         }
 
         public void Reset()
