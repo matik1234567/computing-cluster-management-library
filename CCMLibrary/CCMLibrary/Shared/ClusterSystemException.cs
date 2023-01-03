@@ -6,6 +6,10 @@ using System.Threading.Tasks;
 
 namespace CCMLibrary
 {
+    /// <summary>
+    /// Class inherit from Exception class, define unpredictable system behaviour
+    /// Critical error
+    /// </summary>
     internal class ClusterSystemException : Exception
     {
         public ClusterSystemException() :base() { }

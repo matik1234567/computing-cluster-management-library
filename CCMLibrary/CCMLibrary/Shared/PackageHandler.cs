@@ -14,6 +14,9 @@ using System.Threading.Tasks;
 
 namespace CCMLibrary
 {
+    /// <summary>
+    /// Class handle with serialization and deserialization of message passing via TCP
+    /// </summary>
     internal class PackageHandler
     {
         private static JsonSerializerSettings _serializerSettings = new JsonSerializerSettings { TypeNameHandling = TypeNameHandling.All };

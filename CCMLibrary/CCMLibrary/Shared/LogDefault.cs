@@ -3,7 +3,9 @@ using System.Net;
 
 namespace CCMLibrary
 {
-
+    /// <summary>
+    /// Class define default log output
+    /// </summary>
     public class LogDefault : Logger
     {
 

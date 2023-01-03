@@ -36,6 +36,7 @@ namespace CCMLibrary
         private volatile string _machineIPAddress;
 
         private volatile bool _cancelVirtualConTask = false;
+        private object _driverLocker = new();
 
         /// <summary>
         /// Constructor for TCP runtime mode
@@ -70,12 +71,12 @@ namespace CCMLibrary
         {
             return _phase;
         }
-        private object l = new object();
+     
         private (ServerResponse, object) HandleResponse(ClientRequest request, object requestData, object senderIP)
         {
             try
             {
-                lock (l)
+                lock (_driverLocker)
                 {
                     return ((ServerResponse, object))_driver.GetActionResults(_phase, request, requestData, senderIP);
                 }
@@ -178,7 +179,6 @@ namespace CCMLibrary
        
                     ms.Write(bufferTemp, 0, rec);
 
-                   // json += PackageHandler.GetStringFromBytes(ref bufferTemp);
                 }
                 socket.EndReceive(AR);
             }

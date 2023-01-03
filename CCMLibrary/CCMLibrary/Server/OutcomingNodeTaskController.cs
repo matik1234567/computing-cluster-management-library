@@ -6,6 +6,9 @@ using System.Threading.Tasks;
 
 namespace CCMLibrary
 {
+    /// <summary>
+    /// Class represnt outcoming task to clients
+    /// </summary>
     internal class OutcomingNodeTaskController
     {
         private Dictionary<ulong, NodeTask> _outcomingTasks = new Dictionary<ulong, NodeTask>();

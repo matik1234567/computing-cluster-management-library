@@ -7,6 +7,9 @@ using System.Threading.Tasks;
 
 namespace CCMLibrary
 {
+    /// <summary>
+    /// Class represent connection parametres for client
+    /// </summary>
     internal class ClientConnectionData
     {
 #pragma warning disable CS8618 // Non-nullable property 'ServerHostName' must contain a non-null value when exiting constructor. Consider declaring the property as nullable.

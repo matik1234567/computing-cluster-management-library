@@ -7,8 +7,14 @@ using System.Threading.Tasks;
 
 namespace CCMLibrary
 {
+    /// <summary>
+    /// Enum define library working mode
+    /// </summary>
     public enum RuntimeMode { TCP, Virtual };
 
+    /// <summary>
+    /// Class allows to parametrize library
+    /// </summary>
     public class Runtime
     {
         public static RuntimeMode runtimeMode = RuntimeMode.TCP;

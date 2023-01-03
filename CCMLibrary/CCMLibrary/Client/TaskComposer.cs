@@ -24,10 +24,9 @@ namespace CCMLibrary
 
         public static int GetAvailableResources()
         {
-            //lock (locker)
-            //{
-                return _availableResources;
-            //}
+   
+            return _availableResources;
+           
         }
 
         public static void Hold()

@@ -6,10 +6,19 @@ using System.Threading.Tasks;
 
 namespace CCMLibrary
 {
+    /// <summary>
+    /// Enum define level of log visiblity
+    /// </summary>
     public enum LogLevel { Info, Debug};
 
+    /// <summary>
+    /// Enum define type of outcoming log
+    /// </summary>
     public enum LogType { Exception, Information }
 
+    /// <summary>
+    /// Class define base class for log outputs
+    /// </summary>
     public class Logger
     {
         public LogLevel LogLevel;

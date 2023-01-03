@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 namespace CCMLibrary
 {
     /// <summary>
-    /// Class hold connected client data
+    /// Class represent connected client data
     /// </summary>
     public class WorkflowData
     {

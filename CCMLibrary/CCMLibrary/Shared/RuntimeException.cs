@@ -6,6 +6,10 @@ using System.Threading.Tasks;
 
 namespace CCMLibrary
 {
+    /// <summary>
+    /// Class inherit from Exception class
+    /// Define exception for Client and Server runtimes
+    /// </summary>
     internal class RuntimeException : Exception
     {
         public static readonly string ClientMissingEror = "No client instance";

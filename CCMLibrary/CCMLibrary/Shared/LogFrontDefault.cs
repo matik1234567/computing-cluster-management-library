@@ -6,6 +6,9 @@ using System.Threading.Tasks;
 
 namespace CCMLibrary
 {
+    /// <summary>
+    /// Class define default front log output
+    /// </summary>
     public class LogFrontDefault : LoggerFront
     {
 

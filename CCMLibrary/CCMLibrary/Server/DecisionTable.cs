@@ -8,6 +8,11 @@ using System.Threading.Tasks;
 
 namespace CCMLibrary
 {
+    /// <summary>
+    /// Class allows to define state based on matrix
+    /// </summary>
+    /// <typeparam name="Tx">matrix x values</typeparam>
+    /// <typeparam name="Ty">matrix y values</typeparam>
     internal class DecisionTable<Tx, Ty>
     {
         private List<Tx> X = new List<Tx>();

@@ -4,6 +4,9 @@ using System;
 
 namespace CCMLibrary
 {
+    /// <summary>
+    /// Class define message send over TCP
+    /// </summary>
     internal class Package
     {
 #pragma warning disable CS8618 // Non-nullable property 'MessageType' must contain a non-null value when exiting constructor. Consider declaring the property as nullable.

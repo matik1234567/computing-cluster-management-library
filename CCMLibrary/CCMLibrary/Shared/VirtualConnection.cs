@@ -7,9 +7,11 @@ using System.Threading.Tasks;
 
 namespace CCMLibrary
 {
+    /// <summary>
+    /// Class simulate connection between client and server in Virtual mode
+    /// </summary>
     public class VirtualConnection
     {
-        //private List<ConnectionModel> connections = new List<ConnectionModel>();
         private object _locker = new();
 
         private (ClientRequest, object?) _request;

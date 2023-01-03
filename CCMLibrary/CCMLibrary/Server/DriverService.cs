@@ -9,6 +9,12 @@ namespace CCMLibrary
 {
     internal class DriverService
     {
+        /// <summary>
+        /// Class initiate DecisionTable object
+        /// hold server conditions
+        /// </summary>
+        /// <param name="instance"></param>
+        /// <returns></returns>
         public static DecisionTable<ServerPhase, ClientRequest>GetServerDriver(BrokerServer instance)
         {
             var decisionTable = new DecisionTable<ServerPhase, ClientRequest>(

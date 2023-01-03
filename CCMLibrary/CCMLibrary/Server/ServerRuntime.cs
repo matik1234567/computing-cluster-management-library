@@ -11,6 +11,9 @@ using CCMLibrary.Enums;
 
 namespace CCMLibrary
 {
+    /// <summary>
+    /// Class hold objects of server process and allow to manipulate them on runtime
+    /// </summary>
     public class ServerRuntime : Runtime
     {
         private BrokerServer? _brokerServer;

@@ -6,8 +6,14 @@ using System.Threading.Tasks;
 
 namespace CCMLibrary
 {
+    /// <summary>
+    /// enum define mode of task execution on client side
+    /// </summary>
     public enum TaskExecution { Sync, Async };
 
+    /// <summary>
+    /// Class define attribute for inherited class from ClientFront
+    /// </summary>
     [AttributeUsage(AttributeTargets.Class)]
     public class TaskRuleAttribute : Attribute
     {

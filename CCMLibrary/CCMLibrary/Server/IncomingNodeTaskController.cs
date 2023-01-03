@@ -6,6 +6,9 @@ using System.Threading.Tasks;
 
 namespace CCMLibrary
 {
+    /// <summary>
+    /// Class represent incoming task from nodes
+    /// </summary>
     internal class IncomingNodeTaskController
     {
         private Queue<NodeTask> _incomingTasks = new Queue<NodeTask>();
